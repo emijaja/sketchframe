@@ -91,7 +91,7 @@ interface SceneState {
   setDrillScope(id: NodeId | null): void;
 
   // Grouping
-  groupSelected(): void;
+  groupSelected(skipUndo?: boolean): void;
   ungroupSelected(): void;
 
   // Layer reorder / reparent
@@ -272,10 +272,10 @@ export const useSceneStore = create<SceneState>((set, get) => {
 
     // ─── Grouping ─────────────────────────────────────────────────────
 
-    groupSelected: () => {
+    groupSelected: (skipUndo = false) => {
       const { selectedIds, document: doc } = get();
       if (selectedIds.length < 2) return;
-      get().pushUndo();
+      if (!skipUndo) get().pushUndo();
       const newDoc = groupNodesDoc(doc, selectedIds);
       // Find the new group ID (last in rootOrder that isn't in old rootOrder)
       const oldIds = new Set(doc.rootOrder);
@@ -411,7 +411,6 @@ export const useSceneStore = create<SceneState>((set, get) => {
     // ─── Tool / UI state ──────────────────────────────────────────────
 
     setActiveTool: (tool) => {
-      const g = get();
       set({
         activeTool: tool,
         preview: null,
@@ -425,9 +424,7 @@ export const useSceneStore = create<SceneState>((set, get) => {
         editingTextKey: null,
         editingCursorPos: 0,
         textInputActive: false,
-        generateSelection: tool === 'generate'
-          ? { minRow: 0, maxRow: g.document.gridRows - 1, minCol: 0, maxCol: g.document.gridCols - 1 }
-          : null,
+        generateSelection: null,
       });
     },
 
@@ -631,10 +628,63 @@ export const useSceneStore = create<SceneState>((set, get) => {
     },
 
     pasteText: (text) => {
-      const { cursorRow, cursorCol, document: doc } = get();
-      get().pushUndo();
+      const {
+        cursorRow,
+        cursorCol,
+        document: doc,
+        editingNodeId,
+        editingTextKey,
+        editingCursorPos,
+      } = get();
 
-      let cleaned = text;
+      let cleaned = text.replace(/\r\n?/g, '\n').replace(/\t/g, '    ');
+
+      if (editingNodeId && editingTextKey) {
+        const node = doc.nodes.get(editingNodeId);
+        if (!node) return;
+
+        const currentText = getNodeText(node, editingTextKey);
+        if (currentText === null) return;
+
+        const isMultilineText = node.type === 'text' && editingTextKey === 'content';
+        if (!isMultilineText) {
+          cleaned = cleaned.replace(/\n+/g, ' ');
+        }
+
+        if (cleaned.length === 0) return;
+
+        get().pushUndo();
+
+        const newText =
+          currentText.slice(0, editingCursorPos) +
+          cleaned +
+          currentText.slice(editingCursorPos);
+        const result = setNodeText(node, editingTextKey, newText);
+        if (!result) return;
+
+        const newDoc = updateNodeDoc(
+          doc,
+          editingNodeId,
+          { ...result.patch, bounds: result.bounds } as Partial<SceneNode>
+        );
+        const grid = makeRenderedGrid(newDoc);
+        const newPos = editingCursorPos + cleaned.length;
+        const updatedNode = newDoc.nodes.get(editingNodeId);
+        const gridPos = updatedNode
+          ? getTextCursorGridPos(updatedNode, editingTextKey, newPos)
+          : null;
+
+        set({
+          document: newDoc,
+          renderedGrid: grid,
+          editingCursorPos: newPos,
+          cursorRow: gridPos?.row ?? get().cursorRow,
+          cursorCol: gridPos?.col ?? get().cursorCol,
+        });
+        return;
+      }
+
+      get().pushUndo();
       const trimmed = cleaned.trim();
       if (trimmed.startsWith('```') && trimmed.endsWith('```')) {
         const inner = trimmed.slice(trimmed.indexOf('\n') + 1);

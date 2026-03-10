@@ -56,6 +56,8 @@ export function GeneratePrompt() {
   const addNode = useEditorStore((s) => s.addNode);
   const applyChars = useEditorStore((s) => s.applyChars);
   const removeNodes = useEditorStore((s) => s.removeNodes);
+  const groupSelected = useEditorStore((s) => s.groupSelected);
+  const rerender = useEditorStore((s) => s.rerender);
   const setCharsRaw = useEditorStore((s) => s.setCharsRaw);
   const grid = useEditorStore((s) => s.renderedGrid);
 
@@ -122,7 +124,7 @@ export function GeneratePrompt() {
     const createdIds: string[] = [];
 
     try {
-      const allNodes = await streamGenerateNodes(
+      await streamGenerateNodes(
         finalPrompt,
         width,
         height,
@@ -147,18 +149,15 @@ export function GeneratePrompt() {
       // Group all created nodes
       if (createdIds.length > 1) {
         useEditorStore.getState().setSelection(createdIds);
-        useEditorStore.getState().groupSelected();
+        groupSelected(true);
       } else if (createdIds.length === 1) {
         useEditorStore.getState().setSelection(createdIds);
       }
 
       clearGenerate();
     } catch (err) {
+      useEditorStore.getState().undo();
       if ((err as Error).name === 'AbortError') return;
-      // If some nodes were created, they remain (undo works)
-      if (createdIds.length > 0) {
-        useEditorStore.getState().setSelection(createdIds);
-      }
       setError(err instanceof Error ? err.message : 'Generation failed');
     } finally {
       setGenerateLoading(false);
@@ -210,6 +209,7 @@ export function GeneratePrompt() {
       applyChars(finalChars);
       clearGenerate();
     } catch (err) {
+      rerender();
       if ((err as Error).name === 'AbortError') return;
       setError(err instanceof Error ? err.message : 'Generation failed');
     } finally {

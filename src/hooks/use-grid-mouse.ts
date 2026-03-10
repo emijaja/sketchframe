@@ -52,7 +52,9 @@ export function useGridMouse(cellWidth: number, cellHeight: number, scale: numbe
     // If generate prompt is open, clicking on grid dismisses it
     if (s.generateSelection) {
       s.clearGenerate();
-      return;
+      if (s.activeTool !== 'generate') {
+        return;
+      }
     }
 
     const pos = getPos(e, cellWidth, cellHeight, scale);
@@ -588,6 +590,8 @@ function computeResizedBounds(
   let { x, y, width, height } = orig;
   const minW = 2;
   const minH = 1;
+  const origRight = orig.x + orig.width - 1;
+  const origBottom = orig.y + orig.height - 1;
 
   switch (corner) {
     case 'top-left':
@@ -612,8 +616,18 @@ function computeResizedBounds(
       break;
   }
 
-  if (width < minW) { width = minW; }
-  if (height < minH) { height = minH; }
+  if (width < minW) {
+    width = minW;
+    if (corner === 'top-left' || corner === 'bottom-left') {
+      x = origRight - minW + 1;
+    }
+  }
+  if (height < minH) {
+    height = minH;
+    if (corner === 'top-left' || corner === 'top-right') {
+      y = origBottom - minH + 1;
+    }
+  }
 
   return { x, y, width, height };
 }
