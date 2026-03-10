@@ -107,7 +107,7 @@ export async function copyAsImage(
   ctx.scale(dpr, dpr);
 
   const config: RenderConfig = { cellWidth, cellHeight, showGridLines: false };
-  drawGrid(ctx, grid, config, null, null, false, null, null, null, colors);
+  drawGrid(ctx, grid, config, null, null, false, null, null, null, null, colors);
 
   const blob = await new Promise<Blob>((resolve, reject) =>
     canvas.toBlob(b => b ? resolve(b) : reject(new Error('Failed to create image')), 'image/png')

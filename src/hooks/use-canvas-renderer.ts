@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { drawGrid, measureCellSize, RenderConfig, SelectionRect } from '@/lib/grid-renderer';
+import { drawGrid, measureCellSize, RenderConfig, SelectionRect, MarqueeRect } from '@/lib/grid-renderer';
 import { useEditorStore } from './use-editor-store';
 import { FONT_FAMILY, FONT_SIZE, DEFAULT_CELL_WIDTH, DEFAULT_CELL_HEIGHT, LIGHT_COLORS, DARK_COLORS } from '@/lib/constants';
 
@@ -113,9 +113,40 @@ export function useCanvasRenderer(
       }
     }
 
+    let marqueeRect: MarqueeRect | null = null;
+    if (
+      store.activeTool === 'select' &&
+      store.selectInteraction === 'selecting' &&
+      store.selectDragStart &&
+      store.hoverRow >= 0 &&
+      store.hoverCol >= 0
+    ) {
+      const minRow = Math.min(store.selectDragStart.row, store.hoverRow);
+      const maxRow = Math.max(store.selectDragStart.row, store.hoverRow);
+      const minCol = Math.min(store.selectDragStart.col, store.hoverCol);
+      const maxCol = Math.max(store.selectDragStart.col, store.hoverCol);
+
+      if (minRow !== maxRow || minCol !== maxCol) {
+        marqueeRect = { minRow, maxRow, minCol, maxCol };
+      }
+    }
+
     const cursor = { row: store.cursorRow, col: store.cursorCol };
     const hover = store.hoverRow >= 0 ? { row: store.hoverRow, col: store.hoverCol } : null;
-    drawGrid(ctx, grid, config, cursor, store.preview, cursorVisibleRef.current, hover, store.generateSelection, selectionRect, themeColors, bgImageRef?.current);
+    drawGrid(
+      ctx,
+      grid,
+      config,
+      cursor,
+      store.preview,
+      cursorVisibleRef.current,
+      hover,
+      store.generateSelection,
+      marqueeRect,
+      selectionRect,
+      themeColors,
+      bgImageRef?.current
+    );
   }, []); // stable - reads from refs and getState()
 
   // 1.2: Schedule a single RAF (coalesces multiple state changes into one frame)

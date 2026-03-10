@@ -48,6 +48,13 @@ export interface GenerateSelectionRect {
   maxCol: number;
 }
 
+export interface MarqueeRect {
+  minRow: number;
+  maxRow: number;
+  minCol: number;
+  maxCol: number;
+}
+
 export function drawGrid(
   ctx: CanvasRenderingContext2D,
   grid: CharGrid,
@@ -57,6 +64,7 @@ export function drawGrid(
   cursorVisible: boolean,
   hoverPos: CursorPos | null = null,
   generateSelection: GenerateSelectionRect | null = null,
+  marqueeSelection: MarqueeRect | null = null,
   selection: SelectionRect | null = null,
   colors: ThemeColors = LIGHT_COLORS,
   bgImage?: { image: HTMLImageElement; opacity: number } | null
@@ -182,7 +190,14 @@ export function drawGrid(
   }
 
   // Hover highlight
-  if (hoverPos && hoverPos.row >= 0 && hoverPos.row < grid.rows && hoverPos.col >= 0 && hoverPos.col < grid.cols) {
+  if (
+    hoverPos &&
+    !marqueeSelection &&
+    hoverPos.row >= 0 &&
+    hoverPos.row < grid.rows &&
+    hoverPos.col >= 0 &&
+    hoverPos.col < grid.cols
+  ) {
     ctx.fillStyle = `rgba(${a}, ${0.06 * om})`;
     ctx.fillRect(
       hoverPos.col * cellWidth,
@@ -206,6 +221,24 @@ export function drawGrid(
     ctx.strokeStyle = `rgba(${a}, ${0.5 * om})`;
     ctx.lineWidth = 1.5;
     ctx.setLineDash([5, 4]);
+    ctx.strokeRect(mx + 0.5, my + 0.5, mw - 1, mh - 1);
+    ctx.restore();
+  }
+
+  // Live marquee selection while dragging with Select
+  if (marqueeSelection) {
+    const mx = marqueeSelection.minCol * cellWidth;
+    const my = marqueeSelection.minRow * cellHeight;
+    const mw = (marqueeSelection.maxCol - marqueeSelection.minCol + 1) * cellWidth;
+    const mh = (marqueeSelection.maxRow - marqueeSelection.minRow + 1) * cellHeight;
+
+    ctx.fillStyle = `rgba(${a}, ${0.04 * om})`;
+    ctx.fillRect(mx, my, mw, mh);
+
+    ctx.save();
+    ctx.strokeStyle = `rgba(${a}, ${0.7 * om})`;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 3]);
     ctx.strokeRect(mx + 0.5, my + 0.5, mw - 1, mh - 1);
     ctx.restore();
   }
