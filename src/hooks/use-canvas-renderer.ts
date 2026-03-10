@@ -17,8 +17,9 @@ export function useCanvasRenderer(
   const containerSizeRef = useRef({ width: 0, height: 0 });
   const [scale, setScale] = useState(1);
 
-  // Keep cellSizeRef in sync
-  cellSizeRef.current = cellSize;
+  useEffect(() => {
+    cellSizeRef.current = cellSize;
+  }, [cellSize]);
 
   // Measure cell size once font is loaded
   useEffect(() => {
@@ -147,7 +148,7 @@ export function useCanvasRenderer(
       themeColors,
       bgImageRef?.current
     );
-  }, []); // stable - reads from refs and getState()
+  }, [bgImageRef]); // stable across store updates; only depends on bg image ref identity
 
   // 1.2: Schedule a single RAF (coalesces multiple state changes into one frame)
   const scheduleRender = useCallback(() => {

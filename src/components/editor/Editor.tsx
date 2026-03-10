@@ -22,7 +22,7 @@ export function Editor() {
       const saved = localStorage.getItem('ascii-editor-theme');
       if (saved === 'dark') toggleTheme();
     } catch {}
-  }, []);
+  }, [toggleTheme]);
 
   // Sync .dark class on <html>
   useEffect(() => {

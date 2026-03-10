@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import {
   MousePointer2,
   Type,
   Square,
   Minus,
   ArrowRight,
-  Image,
+  Image as ImageIcon,
   CreditCard,
   Table,
   PanelLeft,
@@ -55,7 +55,6 @@ import { GridSizeSelector } from './GridSizeSelector';
 import { PropertiesPanelContent } from './PropertiesPanel';
 import { toast } from 'sonner';
 
-const IC = 'h-5 w-5';
 const IC_SM = 'h-4 w-4';
 const IC_XS = 'h-3.5 w-3.5';
 
@@ -107,7 +106,7 @@ const sheetUIElements: ToolEntry[] = [
   { id: 'list', label: 'List', icon: <List className={IC_SM} /> },
   { id: 'placeholder', label: 'Placeholder', icon: <Frame className={IC_SM} /> },
   { id: 'hsplit', label: 'HSplit', icon: <PanelLeft className={IC_SM} /> },
-  { id: 'image', label: 'Image', icon: <Image className={IC_SM} /> },
+  { id: 'image', label: 'Image', icon: <ImageIcon className={IC_SM} /> },
 ];
 
 const sheetDraw: ToolEntry[] = [
@@ -149,15 +148,11 @@ export function MobileToolbar() {
   const toolLabel = toolMap[activeTool]?.label ?? activeTool;
   const canvasHasContent = undoStack.length > 0;
   const hasSelection = selectedIds.length > 0;
+  const isPropsSheetVisible = propsSheetOpen && hasSelection;
 
   const selectedNodeType = hasSelection && selectedIds.length === 1
     ? doc.nodes.get(selectedIds[0])?.type ?? null
     : null;
-
-  // Auto-close properties sheet when selection is cleared
-  useEffect(() => {
-    if (!hasSelection) setPropsSheetOpen(false);
-  }, [hasSelection]);
 
   const selectTool = useCallback(
     (id: ToolId) => {
@@ -210,7 +205,10 @@ export function MobileToolbar() {
           <>
             <div className="w-px h-4 bg-border/60" />
             <button
-              onClick={() => clearCanvas()}
+              onClick={() => {
+                setPropsSheetOpen(false);
+                clearCanvas();
+              }}
               className="p-1.5 rounded-lg text-red-500/70 active:bg-red-500/10"
             >
               <Trash2 className={IC_XS} />
@@ -232,7 +230,11 @@ export function MobileToolbar() {
           </span>
           <div className="w-px h-4 bg-border/60" />
           <button
-            onClick={() => { pushUndo(); removeNodes([...selectedIds]); }}
+            onClick={() => {
+              setPropsSheetOpen(false);
+              pushUndo();
+              removeNodes([...selectedIds]);
+            }}
             className="p-1.5 rounded-lg text-red-500 active:bg-red-500/10"
             title="Delete selected"
           >
@@ -256,7 +258,7 @@ export function MobileToolbar() {
           <button
             onClick={() => setPropsSheetOpen((v) => !v)}
             className={`p-1.5 rounded-lg transition-colors ${
-              propsSheetOpen
+              isPropsSheetVisible
                 ? 'text-[#2563eb] bg-[#2563eb]/10'
                 : 'text-foreground/50 active:bg-foreground/10'
             }`}
@@ -265,7 +267,10 @@ export function MobileToolbar() {
             <SlidersHorizontal className={IC_XS} />
           </button>
           <button
-            onClick={() => clearSelection()}
+            onClick={() => {
+              setPropsSheetOpen(false);
+              clearSelection();
+            }}
             className="p-1.5 rounded-lg text-foreground/30 active:bg-foreground/10"
             title="Deselect"
           >
@@ -303,7 +308,7 @@ export function MobileToolbar() {
       </div>
 
       {/* ── Properties sheet (mobile inspector) ── */}
-      {propsSheetOpen && (
+      {isPropsSheetVisible && (
         <>
           <div
             className="fixed inset-0 z-[90] bg-black/30 md:hidden"
@@ -415,7 +420,11 @@ export function MobileToolbar() {
                   {theme === 'light' ? 'Dark' : 'Light'}
                 </button>
                 <button
-                  onClick={() => { clearCanvas(); setSheetOpen(false); }}
+                  onClick={() => {
+                    setPropsSheetOpen(false);
+                    clearCanvas();
+                    setSheetOpen(false);
+                  }}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-red-500 bg-red-500/10 transition-colors"
                 >
                   <Trash2 className={IC_SM} />

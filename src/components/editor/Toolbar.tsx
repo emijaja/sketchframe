@@ -7,7 +7,7 @@ import {
   Square,
   Minus,
   ArrowRight,
-  Image,
+  Image as ImageIcon,
   CreditCard,
   Table,
   PanelLeft,
@@ -86,7 +86,7 @@ const interfaceGroups: ToolGroup[] = [
       { id: 'list',       label: 'List',       icon: <List className={ICON} /> },
       { id: 'placeholder',label: 'Placeholder',icon: <Frame className={ICON} /> },
       { id: 'hsplit',     label: 'HSplit',      icon: <PanelLeft className={ICON} /> },
-      { id: 'image',      label: 'Image',       icon: <Image className={ICON} /> },
+      { id: 'image',      label: 'Image',       icon: <ImageIcon className={ICON} /> },
     ],
   },
 ];

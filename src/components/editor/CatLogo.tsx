@@ -151,13 +151,17 @@ export function CatLogo() {
   const [isAsleep, setIsAsleep] = useState(false);
   const flashTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const clickTimes = useRef<number[]>([]);
-  const lastInteraction = useRef(Date.now());
+  const lastInteraction = useRef(0);
 
   const isDrawing = useEditorStore((s) => s.isDrawing);
   const activeTool = useEditorStore((s) => s.activeTool);
 
   /* base mood — only for generate tool (sparkly eyes) */
   const baseMood = activeTool === 'generate' ? 'magic' : 'idle';
+
+  useEffect(() => {
+    lastInteraction.current = Date.now();
+  }, []);
 
   /* ── Mark interaction (resets sleep) ── */
   const poke = useCallback(() => {
@@ -231,14 +235,24 @@ export function CatLogo() {
   /* ── Subtle reaction to finishing a drawing (not every time) ── */
   const prevDrawing = useRef(isDrawing);
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
     if (prevDrawing.current && !isDrawing) {
-      poke();
-      /* only react ~30% of the time */
-      if (chance(0.3)) {
-        flash(pick(['happy', 'smug', 'proud']), 700);
-      }
+      timeoutId = setTimeout(() => {
+        poke();
+        if (chance(0.3)) {
+          flash(pick(['happy', 'smug', 'proud']), 700);
+        }
+      }, 0);
     }
+
     prevDrawing.current = isDrawing;
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [isDrawing, flash, poke]);
 
   /* ── Resolve which face to show ── */

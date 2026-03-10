@@ -1,12 +1,6 @@
 import type { Metadata, Viewport } from 'next';
-import { JetBrains_Mono } from 'next/font/google';
 import Script from 'next/script';
 import './globals.css';
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: '--font-jetbrains-mono',
-  subsets: ['latin'],
-});
 
 export const viewport: Viewport = {
   viewportFit: 'cover',
@@ -78,7 +72,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${jetbrainsMono.variable} antialiased`}>
+      <body className="antialiased">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

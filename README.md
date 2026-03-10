@@ -101,7 +101,7 @@ Paste this into Claude Code → working page. First try.
 ## run locally
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
@@ -111,7 +111,7 @@ for the magic tool, add `OPENROUTER_API_KEY` to `.env.local`.
 
 ## stack
 
-next.js · react · zustand · tailwind · html canvas · jetbrains mono
+next.js · react · zustand · tailwind · html canvas · local monospace stack
 
 ## license
 
