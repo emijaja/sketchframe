@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
+import { SessionProviderWrapper } from '@/components/providers/session-provider';
 import './globals.css';
 
 export const viewport: Viewport = {
@@ -82,7 +83,7 @@ export default function RootLayout({
           src="https://cloud.umami.is/script.js"
           data-website-id="97036071-936c-4ba5-a66b-5eff9c60b757"
         />
-        {children}
+        <SessionProviderWrapper>{children}</SessionProviderWrapper>
       </body>
     </html>
   );
