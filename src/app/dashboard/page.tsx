@@ -1,7 +1,6 @@
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -23,17 +22,17 @@ export default async function DashboardPage() {
       <div className="max-w-5xl mx-auto p-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-bold">My Wireframes</h1>
-          <Link
+          <a
             href="/"
             className="px-4 py-2 bg-[#2563eb] text-white rounded-lg font-medium text-sm hover:bg-[#2563eb]/90 transition-colors"
           >
             + New
-          </Link>
+          </a>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {wireframes.map((wf) => (
-            <Link
+            <a
               key={wf.id}
               href={`/?id=${wf.id}`}
               className="border border-border/60 rounded-lg p-4 hover:border-foreground/30 transition-colors group"
@@ -54,7 +53,7 @@ export default async function DashboardPage() {
               <p className="text-sm text-foreground/50">
                 {new Date(wf.updatedAt).toLocaleDateString('ja-JP')}
               </p>
-            </Link>
+            </a>
           ))}
 
           {wireframes.length === 0 && (
