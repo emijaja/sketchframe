@@ -54,6 +54,8 @@ import { copyAsMarkdown } from '@/lib/clipboard';
 import { GridSizeSelector } from './GridSizeSelector';
 import { PropertiesPanelContent } from './PropertiesPanel';
 import { toast } from 'sonner';
+import { useSession } from 'next-auth/react';
+import { Save } from 'lucide-react';
 
 const IC_SM = 'h-4 w-4';
 const IC_XS = 'h-3.5 w-3.5';
@@ -119,7 +121,13 @@ const sheetDraw: ToolEntry[] = [
   { id: 'scatter', label: 'Scatter', icon: <Sparkles className={IC_SM} /> },
 ];
 
-export function MobileToolbar() {
+interface MobileToolbarProps {
+  onSave?: () => void;
+  saving?: boolean;
+}
+
+export function MobileToolbar({ onSave, saving }: MobileToolbarProps = {}) {
+  const { data: session } = useSession();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [propsSheetOpen, setPropsSheetOpen] = useState(false);
 
@@ -279,7 +287,7 @@ export function MobileToolbar() {
         </div>
       )}
 
-      {/* ── Floating top-right: AI + Copy ── */}
+      {/* ── Floating top-right: AI + Save + Copy ── */}
       <div
         className={`fixed right-3 z-50 md:hidden flex items-center gap-1.5 ${hasSelection ? 'hidden' : ''}`}
         style={{ top: 'calc(12px + env(safe-area-inset-top, 0px))' }}
@@ -295,6 +303,16 @@ export function MobileToolbar() {
           <Wand2 className={IC_XS} />
           AI
         </button>
+        {session?.user && (
+          <button
+            onClick={onSave}
+            disabled={saving}
+            className="flex items-center gap-1.5 bg-background/90 backdrop-blur-sm border border-border/60 text-foreground/70 rounded-xl px-3 py-1.5 shadow-sm text-xs font-semibold active:bg-foreground/10 disabled:opacity-40"
+          >
+            <Save className={IC_XS} />
+            {saving ? '...' : 'Save'}
+          </button>
+        )}
         <button
           onClick={async () => {
             await copyAsMarkdown(grid);
