@@ -1,10 +1,16 @@
 import { Editor } from '@/components/editor/Editor';
 
-export default function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ id?: string }>;
+}) {
+  const { id } = await searchParams;
+
   return (
     <>
       <h1 className="sr-only">Mockdown — ASCII Wireframe Editor</h1>
-      <Editor />
+      <Editor wireframeId={id ?? null} />
       <noscript>
         <div style={{ padding: '2rem', maxWidth: '600px', margin: '0 auto' }}>
           <h2>Mockdown — ASCII Wireframe Editor</h2>

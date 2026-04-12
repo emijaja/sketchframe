@@ -16,6 +16,7 @@
     "@ai-sdk/openai": "^3.0.29",
     "@auth/prisma-adapter": "^2.11.1",
     "@neondatabase/serverless": "^1.0.2",
+    "@prisma/adapter-neon": "^7.7.0",
     "@prisma/client": "^7.7.0",
     "ai": "^6.0.86",
     "class-variance-authority": "^0.7.1",
