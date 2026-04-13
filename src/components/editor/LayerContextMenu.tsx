@@ -10,6 +10,7 @@ interface LayerContextMenuProps {
   isGroup: boolean;
   selectedIds: NodeId[];
   onRename: (id: NodeId) => void;
+  onDuplicate: (ids: NodeId[]) => void;
   onGroup: () => void;
   onUngroup: () => void;
   onBringToFront: () => void;
@@ -26,6 +27,7 @@ export function LayerContextMenu({
   isGroup,
   selectedIds,
   onRename,
+  onDuplicate,
   onGroup,
   onUngroup,
   onBringToFront,
@@ -44,6 +46,11 @@ export function LayerContextMenu({
         >
           <ContextMenu.Item className={itemClass} onSelect={() => onRename(nodeId)}>
             Rename
+          </ContextMenu.Item>
+
+          <ContextMenu.Item className={itemClass} onSelect={() => onDuplicate(ids)}>
+            <span>Duplicate</span>
+            <span className="text-foreground/30 ml-4">&#8984;D</span>
           </ContextMenu.Item>
 
           <ContextMenu.Separator className="my-1 h-px bg-border/40" />

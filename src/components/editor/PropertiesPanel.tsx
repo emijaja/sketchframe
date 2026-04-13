@@ -523,6 +523,7 @@ export function PropertiesPanelContent({ showLayers = true }: { showLayers?: boo
   const removeNodes = useEditorStore((s) => s.removeNodes);
   const groupSelected = useEditorStore((s) => s.groupSelected);
   const ungroupSelected = useEditorStore((s) => s.ungroupSelected);
+  const duplicateNodesAction = useEditorStore((s) => s.duplicateNodes);
   const bringToFront = useEditorStore((s) => s.bringToFront);
   const sendToBack = useEditorStore((s) => s.sendToBack);
   const renameNode = useEditorStore((s) => s.renameNode);
@@ -722,6 +723,7 @@ export function PropertiesPanelContent({ showLayers = true }: { showLayers?: boo
               isGroup={row.isGroup}
               selectedIds={selectedIds}
               onRename={handleLayerRenameStart}
+              onDuplicate={(ids) => duplicateNodesAction(ids)}
               onGroup={() => runOnSelection(node.id, groupSelected)}
               onUngroup={() => runOnSelection(node.id, ungroupSelected)}
               onBringToFront={() => runOnSelection(node.id, bringToFront)}
