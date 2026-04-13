@@ -70,6 +70,13 @@ export function useKeyboard() {
         return;
       }
 
+      // Duplicate: Cmd/Ctrl+D
+      if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
+        e.preventDefault();
+        s.duplicateSelected();
+        return;
+      }
+
       // Z-order: Cmd+] / Cmd+[
       if ((e.metaKey || e.ctrlKey) && e.key === ']') {
         e.preventDefault();
