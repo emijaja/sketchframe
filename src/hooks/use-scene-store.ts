@@ -693,13 +693,12 @@ export const useSceneStore = create<SceneState>((set, get) => {
       cleaned = cleaned.replace(/\t/g, '    ');
       const lines = cleaned.split('\n').map(l => l.replace(/\r$/, ''));
 
-      // Create a StrokeNode from pasted text
+      // Create a StrokeNode from pasted text — no grid-bound clipping; the
+      // doc auto-grows via ensureGridFits inside addNode.
       const cells: SparseCell[] = [];
       let maxCol = 0;
       for (let i = 0; i < lines.length; i++) {
-        if (cursorRow + i >= doc.gridRows) break;
         for (let j = 0; j < lines[i].length; j++) {
-          if (cursorCol + j >= doc.gridCols) break;
           if (lines[i][j] !== ' ') {
             cells.push({ row: i, col: j, char: lines[i][j] });
             maxCol = Math.max(maxCol, j);
@@ -708,21 +707,19 @@ export const useSceneStore = create<SceneState>((set, get) => {
       }
 
       if (cells.length > 0) {
-        const height = Math.min(lines.length, doc.gridRows - cursorRow);
-        const width = Math.min(maxCol + 1, doc.gridCols - cursorCol);
         get().addNode({
           type: 'stroke',
           name: 'Pasted Text',
-          bounds: { x: cursorCol, y: cursorRow, width, height },
+          bounds: { x: cursorCol, y: cursorRow, width: maxCol + 1, height: lines.length },
           cells,
         });
       }
 
-      const lastRow = Math.min(cursorRow + lines.length - 1, doc.gridRows - 1);
+      const newDoc = get().document;
       const lastLine = lines[lines.length - 1] || '';
       set({
-        cursorRow: lastRow,
-        cursorCol: Math.min(cursorCol + lastLine.length, doc.gridCols - 1),
+        cursorRow: Math.min(cursorRow + lines.length - 1, newDoc.gridRows - 1),
+        cursorCol: Math.min(cursorCol + lastLine.length, newDoc.gridCols - 1),
       });
     },
 

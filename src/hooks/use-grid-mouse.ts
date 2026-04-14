@@ -16,10 +16,11 @@ let marqueeAdditive = false;
 let marqueeBaseSelection: string[] = [];
 
 export function pixelToGrid(
-  x: number, y: number, cellWidth: number, cellHeight: number, maxRows: number, maxCols: number
+  x: number, y: number, cellWidth: number, cellHeight: number, _maxRows: number, _maxCols: number
 ): { row: number; col: number } {
-  const col = Math.max(0, Math.min(Math.floor(x / cellWidth), maxCols - 1));
-  const row = Math.max(0, Math.min(Math.floor(y / cellHeight), maxRows - 1));
+  // Lower bound only — the upper edge grows with the doc via ensureGridFits.
+  const col = Math.max(0, Math.floor(x / cellWidth));
+  const row = Math.max(0, Math.floor(y / cellHeight));
   return { row, col };
 }
 
@@ -656,25 +657,14 @@ function mergeSelection(base: string[], extra: string[]): string[] {
   return [...new Set([...base, ...extra])];
 }
 
-function clampBoundsToDocument(doc: { gridRows: number; gridCols: number }, bounds: Bounds): Bounds {
-  const clamped = {
+function clampBoundsToDocument(_doc: { gridRows: number; gridCols: number }, bounds: Bounds): Bounds {
+  // Only pin the top/left edge; the right/bottom sides grow with the doc
+  // via ensureGridFits downstream.
+  return {
     x: Math.max(0, bounds.x),
     y: Math.max(0, bounds.y),
     width: Math.max(1, bounds.width),
     height: Math.max(1, bounds.height),
-  };
-
-  if (clamped.x + clamped.width > doc.gridCols) {
-    clamped.width = doc.gridCols - clamped.x;
-  }
-  if (clamped.y + clamped.height > doc.gridRows) {
-    clamped.height = doc.gridRows - clamped.y;
-  }
-
-  return {
-    ...clamped,
-    width: Math.max(1, clamped.width),
-    height: Math.max(1, clamped.height),
   };
 }
 

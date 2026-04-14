@@ -28,6 +28,21 @@ export function computeAutoGridSize(
   return { cols, rows };
 }
 
+// Ladder used by auto-grow: when a node overflows the current grid, the doc
+// expands to the next value in these lists rather than hugging the node's bounds.
+export const GRID_GROW_COLS = [80, 120, 160, 200, 240, 300, 400, 500, 600, 800, 1000];
+export const GRID_GROW_ROWS = [40, 60, 80, 100, 120, 160, 200, 300, 400, 500, 600];
+
+export function nextGridCols(required: number): number {
+  for (const c of GRID_GROW_COLS) if (c >= required) return c;
+  return Math.ceil(required / 100) * 100;
+}
+
+export function nextGridRows(required: number): number {
+  for (const r of GRID_GROW_ROWS) if (r >= required) return r;
+  return Math.ceil(required / 50) * 50;
+}
+
 export const FONT_FAMILY = 'JetBrains Mono, monospace';
 export const FONT_SIZE = 14;
 
