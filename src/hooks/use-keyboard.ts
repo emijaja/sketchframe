@@ -71,7 +71,7 @@ export function useKeyboard() {
       }
 
       // Duplicate: Cmd/Ctrl+D
-      if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
+      if ((e.metaKey || e.ctrlKey) && e.code === 'KeyD') {
         e.preventDefault();
         s.duplicateSelected();
         return;
