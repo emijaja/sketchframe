@@ -22,8 +22,6 @@ export function StatusBar() {
       </span>
       <div className="flex-1" />
       <GridSizeSelector />
-      <div className="flex items-center gap-2 border border-[#2563eb]/20 bg-[#2563eb]/6 px-3 py-1">
-      </div>
       <Link href="/about" className="hover:text-foreground/60 transition-colors">
         About
       </Link>
