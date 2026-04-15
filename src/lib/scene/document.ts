@@ -6,7 +6,7 @@ import {
   Bounds,
   SceneDocument,
 } from './types';
-import { nextGridCols, nextGridRows } from '@/lib/constants';
+import { MAX_GRID_COLS, MAX_GRID_ROWS, nextGridCols, nextGridRows } from '@/lib/constants';
 
 export { type SceneDocument } from './types';
 
@@ -740,13 +740,14 @@ function cloneDocShallow(doc: SceneDocument): SceneDocument {
 }
 
 // Grow the doc's grid so `bounds` fits, snapping cols/rows to the next ladder
-// step (see GRID_GROW_COLS / GRID_GROW_ROWS). Never shrinks the grid.
+// step (see GRID_GROW_COLS / GRID_GROW_ROWS). Never shrinks the grid, and
+// never grows beyond MAX_GRID_COLS / MAX_GRID_ROWS.
 export function ensureGridFits(doc: SceneDocument, bounds: Bounds): SceneDocument {
-  const requiredCols = Math.max(1, bounds.x + bounds.width);
-  const requiredRows = Math.max(1, bounds.y + bounds.height);
+  const requiredCols = Math.min(MAX_GRID_COLS, Math.max(1, bounds.x + bounds.width));
+  const requiredRows = Math.min(MAX_GRID_ROWS, Math.max(1, bounds.y + bounds.height));
   if (requiredCols <= doc.gridCols && requiredRows <= doc.gridRows) return doc;
-  const newCols = Math.max(doc.gridCols, nextGridCols(requiredCols));
-  const newRows = Math.max(doc.gridRows, nextGridRows(requiredRows));
+  const newCols = Math.min(MAX_GRID_COLS, Math.max(doc.gridCols, nextGridCols(requiredCols)));
+  const newRows = Math.min(MAX_GRID_ROWS, Math.max(doc.gridRows, nextGridRows(requiredRows)));
   if (newCols === doc.gridCols && newRows === doc.gridRows) return doc;
   return {
     ...doc,
