@@ -649,7 +649,9 @@ export function cloneDocument(doc: SceneDocument): SceneDocument {
  */
 function deepCloneIntoDoc(doc: SceneDocument, srcId: NodeId, newParentId: NodeId | null): NodeId {
   const src = doc.nodes.get(srcId);
-  if (!src) return srcId;
+  if (!src) {
+    throw new Error(`Cannot deep-clone missing scene node: ${srcId}`);
+  }
   const newId = generateId();
   const cloned = cloneNodeDeep(src, newId, newParentId);
   doc.nodes.set(newId, cloned);
