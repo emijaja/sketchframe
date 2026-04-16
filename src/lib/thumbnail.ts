@@ -11,9 +11,11 @@ export function generateThumbnail(
   const canvas = document.createElement('canvas');
   const w = grid.cols * cellWidth;
   const h = grid.rows * cellHeight;
-  canvas.width = w;
-  canvas.height = h;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.round(w * dpr));
+  canvas.height = Math.max(1, Math.round(h * dpr));
   const ctx = canvas.getContext('2d')!;
+  ctx.scale(dpr, dpr);
 
   const config: RenderConfig = { cellWidth, cellHeight, showGridLines: false };
   drawGrid(ctx, grid, config, null, null, false, null, null, null, null, colors);
