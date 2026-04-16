@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 import { NextResponse } from "next/server"
 
 // GET /api/wireframes/:id — 単体取得
@@ -35,16 +36,69 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const body = await req.json()
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON request body" },
+      { status: 400 },
+    )
+  }
+
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json(
+      { error: "Request body must be a JSON object" },
+      { status: 400 },
+    )
+  }
+
+  const payload = body as Record<string, unknown>
+  const data: Prisma.WireframeUpdateInput = {}
+
+  if (payload.title !== undefined) {
+    if (typeof payload.title !== "string") {
+      return NextResponse.json(
+        { error: "Field 'title' must be a string" },
+        { status: 400 },
+      )
+    }
+    data.title = payload.title
+  }
+
+  if (payload.canvas !== undefined) {
+    if (payload.canvas === null) {
+      return NextResponse.json(
+        { error: "Field 'canvas' must not be null" },
+        { status: 400 },
+      )
+    }
+    data.canvas = payload.canvas as Prisma.InputJsonValue
+  }
+
+  if (payload.markdown !== undefined) {
+    if (payload.markdown !== null && typeof payload.markdown !== "string") {
+      return NextResponse.json(
+        { error: "Field 'markdown' must be a string or null" },
+        { status: 400 },
+      )
+    }
+    data.markdown = payload.markdown as string | null
+  }
+
+  if (payload.thumbnail !== undefined) {
+    if (payload.thumbnail !== null && typeof payload.thumbnail !== "string") {
+      return NextResponse.json(
+        { error: "Field 'thumbnail' must be a string or null" },
+        { status: 400 },
+      )
+    }
+    data.thumbnail = payload.thumbnail as string | null
+  }
 
   const wireframe = await prisma.wireframe.updateMany({
     where: { id, userId: session.user.id },
-    data: {
-      title: body.title,
-      canvas: body.canvas,
-      markdown: body.markdown,
-      thumbnail: body.thumbnail,
-    },
+    data,
   })
 
   if (wireframe.count === 0) {
