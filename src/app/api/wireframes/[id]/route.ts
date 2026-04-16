@@ -65,9 +65,13 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  await prisma.wireframe.deleteMany({
+  const deleted = await prisma.wireframe.deleteMany({
     where: { id, userId: session.user.id },
   })
+
+  if (deleted.count === 0) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
 
   return NextResponse.json({ success: true })
 }
