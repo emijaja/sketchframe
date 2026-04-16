@@ -4,6 +4,16 @@ import GitHub from "next-auth/providers/github"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "./prisma"
 
+function getRequiredEnv(name: string): string {
+  const value = process.env[name]
+
+  if (!value || value.trim() === "") {
+    throw new Error(`Missing required environment variable: ${name}`)
+  }
+
+  return value
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: {
@@ -11,12 +21,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   providers: [
     Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: getRequiredEnv("GOOGLE_CLIENT_ID"),
+      clientSecret: getRequiredEnv("GOOGLE_CLIENT_SECRET"),
     }),
     GitHub({
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      clientId: getRequiredEnv("GITHUB_CLIENT_ID"),
+      clientSecret: getRequiredEnv("GITHUB_CLIENT_SECRET"),
     }),
   ],
   callbacks: {
