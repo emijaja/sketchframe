@@ -12,9 +12,24 @@ export function useLoadWireframe(
     if (!wireframeId) return;
 
     fetch(`/api/wireframes/${wireframeId}`)
-      .then((res) => {
-        if (!res.ok) throw new Error('Not found');
-        return res.json();
+      .then(async (res) => {
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          const serverMessage =
+            data && typeof data === 'object' && typeof data.error === 'string'
+              ? data.error
+              : null;
+          const fallback =
+            res.status === 401
+              ? 'Unauthorized'
+              : res.status === 404
+                ? 'Not found'
+                : `Request failed with status ${res.status}`;
+          throw new Error(serverMessage ?? fallback);
+        }
+
+        return data;
       })
       .then((data) => {
         importCanvas(data.canvas as SerializedDocument);
