@@ -24,11 +24,16 @@ export function useSaveWireframe() {
     setSaving(true);
     try {
       if (currentId) {
-        await fetch(`/api/wireframes/${currentId}`, {
+        const res = await fetch(`/api/wireframes/${currentId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title, canvas, markdown, thumbnail }),
         });
+        if (!res.ok) {
+          throw new Error(
+            `Failed to update wireframe: ${res.status} ${res.statusText}`,
+          );
+        }
         return currentId;
       } else {
         const res = await fetch('/api/wireframes', {
@@ -43,6 +48,11 @@ export function useSaveWireframe() {
             height: state.document.gridRows,
           }),
         });
+        if (!res.ok) {
+          throw new Error(
+            `Failed to create wireframe: ${res.status} ${res.statusText}`,
+          );
+        }
         const data = await res.json();
         setCurrentId(data.id);
         return data.id as string;
