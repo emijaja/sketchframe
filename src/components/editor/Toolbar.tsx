@@ -51,7 +51,7 @@ import { ToolId } from '@/lib/constants';
 import { CatLogo } from './CatLogo';
 import { copyAsMarkdown } from '@/lib/clipboard';
 import { toast } from 'sonner';
-import { AuthButton } from '@/components/auth/sign-in-button';
+import { AuthButton } from '@/components/auth/auth-button';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
