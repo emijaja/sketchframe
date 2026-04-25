@@ -22,34 +22,9 @@ export function StatusBar() {
       </span>
       <div className="flex-1" />
       <GridSizeSelector />
-      <div className="flex items-center gap-2 border border-[#2563eb]/20 bg-[#2563eb]/6 px-3 py-1">
-        <span className="hidden lg:inline text-foreground/55">
-          Try my other product:
-        </span>
-        <a
-          href="https://refero.design/mcp"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center bg-[#2563eb] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-[#1d4ed8]"
-          title="Refero MCP helps AI agents research real product screens and user flows before they design."
-        >
-          Refero MCP
-        </a>
-        <span className="hidden 2xl:inline text-foreground/45">
-          Real product UI research for agents.
-        </span>
-      </div>
       <Link href="/about" className="hover:text-foreground/60 transition-colors">
         About
       </Link>
-      <a
-        href="https://x.com/bbssppllvv"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="hover:text-foreground/60 transition-colors"
-      >
-        @bbssppllvv
-      </a>
     </div>
   );
 }
