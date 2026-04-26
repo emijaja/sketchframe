@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
+import useSWRMutation from 'swr/mutation';
+import { jsonMutator } from '@/lib/swr/fetcher';
 
 type Props = {
   id: string;
@@ -14,7 +15,10 @@ type Props = {
 
 export function WireframeCard({ id, title, thumbnail, updatedAt }: Props) {
   const router = useRouter();
-  const [deleting, setDeleting] = useState(false);
+  const { trigger, isMutating } = useSWRMutation(
+    `/api/wireframes/${id}`,
+    jsonMutator<unknown>,
+  );
 
   const handleDelete = async (event: React.MouseEvent) => {
     event.preventDefault();
@@ -22,17 +26,12 @@ export function WireframeCard({ id, title, thumbnail, updatedAt }: Props) {
 
     if (!window.confirm(`「${title}」を削除しますか?`)) return;
 
-    setDeleting(true);
     try {
-      const res = await fetch(`/api/wireframes/${id}`, { method: 'DELETE' });
-      if (!res.ok) {
-        throw new Error(`Failed to delete: ${res.status}`);
-      }
+      await trigger({ method: 'DELETE' });
       router.refresh();
     } catch (error) {
       console.error(error);
       window.alert('削除に失敗しました');
-      setDeleting(false);
     }
   };
 
@@ -63,7 +62,7 @@ export function WireframeCard({ id, title, thumbnail, updatedAt }: Props) {
       <button
         type="button"
         onClick={handleDelete}
-        disabled={deleting}
+        disabled={isMutating}
         className="absolute top-2 right-2 p-2 rounded-lg bg-background/80 backdrop-blur-sm border border-border/60 text-foreground/60 opacity-0 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
         aria-label={`${title} を削除`}
         title="削除"

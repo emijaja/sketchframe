@@ -19,16 +19,19 @@ export async function fetcher<T>(url: string): Promise<T> {
   return data as T;
 }
 
-export type MutatorArg = { method: 'POST' | 'PATCH'; body: unknown };
+export type MutatorArg =
+  | { method: 'POST' | 'PATCH'; body: unknown }
+  | { method: 'DELETE'; body?: undefined };
 
 export async function jsonMutator<T>(
   url: string,
   { arg }: { arg: MutatorArg },
 ): Promise<T> {
+  const hasBody = arg.method !== 'DELETE';
   const res = await fetch(url, {
     method: arg.method,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(arg.body),
+    headers: hasBody ? { 'Content-Type': 'application/json' } : undefined,
+    body: hasBody ? JSON.stringify(arg.body) : undefined,
   });
   const data = await res.json().catch(() => null);
   if (!res.ok) await extractError(res, data);
