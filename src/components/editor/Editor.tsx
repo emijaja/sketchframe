@@ -22,14 +22,13 @@ export function Editor({ wireframeId }: EditorProps) {
   useKeyboard();
   const theme = useEditorStore((s) => s.theme);
   const toggleTheme = useEditorStore((s) => s.toggleTheme);
-  const { save, saving, setCurrentId, setTitle } = useSaveWireframe();
+  const { save, saving, setTitle } = useSaveWireframe(wireframeId ?? null);
 
   const onLoaded = useCallback(
     (data: { id: string; title: string }) => {
-      setCurrentId(data.id);
       setTitle(data.title);
     },
-    [setCurrentId, setTitle],
+    [setTitle],
   );
 
   useLoadWireframe(wireframeId ?? null, onLoaded);

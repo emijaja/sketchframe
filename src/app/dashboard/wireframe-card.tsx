@@ -43,6 +43,8 @@ export function WireframeCard({ id, title, thumbnail, updatedAt }: Props) {
         className="block border border-border/60 rounded-lg p-4 hover:border-foreground/30 transition-colors"
       >
         {thumbnail ? (
+          // data URL のため next/image の最適化対象外。lint 抑止
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={thumbnail}
             alt={title}

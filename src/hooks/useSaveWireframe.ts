@@ -18,9 +18,15 @@ function resolveCellSize(): { width: number; height: number } {
   return measureCellSize(ctx);
 }
 
-export function useSaveWireframe() {
-  const [currentId, setCurrentId] = useState<string | null>(null);
+export function useSaveWireframe(initialId?: string | null) {
+  const [currentId, setCurrentId] = useState<string | null>(initialId ?? null);
+  const [prevInitialId, setPrevInitialId] = useState(initialId);
   const [title, setTitle] = useState('Untitled');
+
+  if (initialId !== prevInitialId) {
+    setPrevInitialId(initialId);
+    setCurrentId(initialId ?? null);
+  }
 
   const createMutation = useSWRMutation(
     '/api/wireframes',
