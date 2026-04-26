@@ -28,6 +28,29 @@ export function computeAutoGridSize(
   return { cols, rows };
 }
 
+// Ladder used by auto-grow: when a node overflows the current grid, the doc
+// expands to the next value in these lists rather than hugging the node's bounds.
+export const GRID_GROW_COLS = [80, 120, 160, 200, 240, 300, 400, 500, 600, 800, 1000];
+export const GRID_GROW_ROWS = [40, 60, 80, 100, 120, 160, 200, 300, 400, 500, 600];
+
+// Hard upper bound on auto-grow: renderScene allocates CharGrid(rows, cols) and
+// useCanvasRenderer sizes the canvas to the full pixel area, so an unbounded
+// grow from a single drag could exhaust memory or crash the browser.
+export const MAX_GRID_COLS = 1000;
+export const MAX_GRID_ROWS = 600;
+
+export function nextGridCols(required: number): number {
+  const capped = Math.min(MAX_GRID_COLS, Math.max(1, required));
+  for (const c of GRID_GROW_COLS) if (c >= capped) return c;
+  return Math.min(MAX_GRID_COLS, Math.ceil(capped / 100) * 100);
+}
+
+export function nextGridRows(required: number): number {
+  const capped = Math.min(MAX_GRID_ROWS, Math.max(1, required));
+  for (const r of GRID_GROW_ROWS) if (r >= capped) return r;
+  return Math.min(MAX_GRID_ROWS, Math.ceil(capped / 50) * 50);
+}
+
 export const FONT_FAMILY = 'JetBrains Mono, monospace';
 export const FONT_SIZE = 14;
 

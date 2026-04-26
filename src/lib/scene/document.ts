@@ -6,6 +6,7 @@ import {
   Bounds,
   SceneDocument,
 } from './types';
+import { MAX_GRID_COLS, MAX_GRID_ROWS, nextGridCols, nextGridRows } from '@/lib/constants';
 
 export { type SceneDocument } from './types';
 
@@ -38,7 +39,7 @@ export function addNode(doc: SceneDocument, node: SceneNode): SceneDocument {
   } else {
     next.rootOrder = [...next.rootOrder, node.id];
   }
-  return next;
+  return ensureGridFits(next, node.bounds);
 }
 
 export function removeNode(doc: SceneDocument, id: NodeId): SceneDocument {
@@ -221,14 +222,17 @@ function setNodeVisibilityInner(doc: SceneDocument, id: NodeId, visible: boolean
 export function moveNode(doc: SceneDocument, id: NodeId, dRow: number, dCol: number): SceneDocument {
   const node = doc.nodes.get(id);
   if (!node) return doc;
-  const next = cloneDocShallow(doc);
+  let next = cloneDocShallow(doc);
 
-  // Clamp delta so the top-level node stays on canvas
-  const clampedDCol = Math.max(-node.bounds.x, Math.min(doc.gridCols - node.bounds.width - node.bounds.x, dCol));
-  const clampedDRow = Math.max(-node.bounds.y, Math.min(doc.gridRows - node.bounds.height - node.bounds.y, dRow));
+  // Keep the node from going off the top/left edge; the right/bottom edges
+  // grow automatically via ensureGridFits below.
+  const clampedDCol = Math.max(-node.bounds.x, dCol);
+  const clampedDRow = Math.max(-node.bounds.y, dRow);
 
   shiftNodeBounds(next, id, clampedDRow, clampedDCol);
   refreshGroupChain(next, node.parentId);
+  const moved = next.nodes.get(id);
+  if (moved) next = ensureGridFits(next, moved.bounds);
   return next;
 }
 
@@ -239,9 +243,7 @@ export function clampMoveDelta(
   dCol: number
 ): { dRow: number; dCol: number } {
   let minAllowedCol = -Infinity;
-  let maxAllowedCol = Infinity;
   let minAllowedRow = -Infinity;
-  let maxAllowedRow = Infinity;
   let foundNode = false;
 
   for (const id of ids) {
@@ -249,16 +251,14 @@ export function clampMoveDelta(
     if (!node) continue;
     foundNode = true;
     minAllowedCol = Math.max(minAllowedCol, -node.bounds.x);
-    maxAllowedCol = Math.min(maxAllowedCol, doc.gridCols - node.bounds.width - node.bounds.x);
     minAllowedRow = Math.max(minAllowedRow, -node.bounds.y);
-    maxAllowedRow = Math.min(maxAllowedRow, doc.gridRows - node.bounds.height - node.bounds.y);
   }
 
   if (!foundNode) return { dRow, dCol };
 
   return {
-    dRow: Math.max(minAllowedRow, Math.min(maxAllowedRow, dRow)),
-    dCol: Math.max(minAllowedCol, Math.min(maxAllowedCol, dCol)),
+    dRow: Math.max(minAllowedRow, dRow),
+    dCol: Math.max(minAllowedCol, dCol),
   };
 }
 
@@ -291,7 +291,7 @@ function shiftNodeBounds(doc: SceneDocument, id: NodeId, dRow: number, dCol: num
 }
 
 export function moveNodes(doc: SceneDocument, ids: NodeId[], dRow: number, dCol: number): SceneDocument {
-  const next = cloneDocShallow(doc);
+  let next = cloneDocShallow(doc);
   const clamped = clampMoveDelta(doc, ids, dRow, dCol);
   for (const id of ids) {
     const node = next.nodes.get(id);
@@ -299,34 +299,36 @@ export function moveNodes(doc: SceneDocument, ids: NodeId[], dRow: number, dCol:
     shiftNodeBounds(next, id, clamped.dRow, clamped.dCol);
     refreshGroupChain(next, node.parentId);
   }
+  // Grow the grid once to cover all moved nodes' new positions.
+  let maxX = 0, maxY = 0;
+  for (const id of ids) {
+    const moved = next.nodes.get(id);
+    if (!moved) continue;
+    maxX = Math.max(maxX, moved.bounds.x + moved.bounds.width);
+    maxY = Math.max(maxY, moved.bounds.y + moved.bounds.height);
+  }
+  if (maxX > 0 || maxY > 0) {
+    next = ensureGridFits(next, { x: 0, y: 0, width: maxX, height: maxY });
+  }
   return next;
 }
 
 export function resizeNode(doc: SceneDocument, id: NodeId, newBounds: Bounds): SceneDocument {
   const node = doc.nodes.get(id);
   if (!node) return doc;
-  const next = cloneDocShallow(doc);
+  let next = cloneDocShallow(doc);
   const minWidth = getMinWidth(node);
   const minHeight = getMinHeight(node);
-  const x = Math.min(Math.max(0, newBounds.x), Math.max(0, doc.gridCols - minWidth));
-  const y = Math.min(Math.max(0, newBounds.y), Math.max(0, doc.gridRows - minHeight));
-  const constrained = { ...newBounds, x, y };
-  // Clamp to grid bounds and enforce minimum size
+  // Keep the top/left edges pinned to the grid; the right/bottom sides are
+  // free to grow — the grid itself auto-expands via ensureGridFits below.
+  const x = Math.max(0, newBounds.x);
+  const y = Math.max(0, newBounds.y);
   const clamped: Bounds = {
     x,
     y,
-    width: Math.max(minWidth, constrained.width),
-    height: Math.max(minHeight, constrained.height),
+    width: Math.max(minWidth, newBounds.width),
+    height: Math.max(minHeight, newBounds.height),
   };
-  if (clamped.x + clamped.width > doc.gridCols) {
-    clamped.width = doc.gridCols - clamped.x;
-  }
-  if (clamped.y + clamped.height > doc.gridRows) {
-    clamped.height = doc.gridRows - clamped.y;
-  }
-  // Re-enforce minimums after clamping
-  if (clamped.width < minWidth) clamped.width = minWidth;
-  if (clamped.height < minHeight) clamped.height = minHeight;
 
   if (node.type === 'group') {
     const sx = clamped.width / Math.max(1, node.bounds.width);
@@ -336,6 +338,7 @@ export function resizeNode(doc: SceneDocument, id: NodeId, newBounds: Bounds): S
       scaleNodeFromGroupResize(next, childId, node.bounds, clamped, sx, sy);
     }
     refreshGroupChain(next, node.parentId);
+    next = ensureGridFits(next, clamped);
     return next;
   }
 
@@ -349,11 +352,13 @@ export function resizeNode(doc: SceneDocument, id: NodeId, newBounds: Bounds): S
     const bounds = boundsFromPoints(points);
     next.nodes.set(id, { ...node, points, bounds } as SceneNode);
     refreshGroupChain(next, node.parentId);
+    next = ensureGridFits(next, bounds);
     return next;
   }
 
   next.nodes.set(id, { ...node, bounds: clamped } as SceneNode);
   refreshGroupChain(next, node.parentId);
+  next = ensureGridFits(next, clamped);
   return next;
 }
 
@@ -824,4 +829,35 @@ function cloneDocShallow(doc: SceneDocument): SceneDocument {
     gridRows: doc.gridRows,
     gridCols: doc.gridCols,
   };
+}
+
+// Grow the doc's grid so `bounds` fits, snapping cols/rows to the next ladder
+// step (see GRID_GROW_COLS / GRID_GROW_ROWS). Never shrinks the grid, and
+// never grows beyond MAX_GRID_COLS / MAX_GRID_ROWS.
+export function ensureGridFits(doc: SceneDocument, bounds: Bounds): SceneDocument {
+  const requiredCols = Math.min(MAX_GRID_COLS, Math.max(1, bounds.x + bounds.width));
+  const requiredRows = Math.min(MAX_GRID_ROWS, Math.max(1, bounds.y + bounds.height));
+  if (requiredCols <= doc.gridCols && requiredRows <= doc.gridRows) return doc;
+  const newCols = Math.min(MAX_GRID_COLS, Math.max(doc.gridCols, nextGridCols(requiredCols)));
+  const newRows = Math.min(MAX_GRID_ROWS, Math.max(doc.gridRows, nextGridRows(requiredRows)));
+  if (newCols === doc.gridCols && newRows === doc.gridRows) return doc;
+  return {
+    ...doc,
+    gridRows: newRows,
+    gridCols: newCols,
+    nodes: new Map(doc.nodes),
+    rootOrder: [...doc.rootOrder],
+  };
+}
+
+// Expand the grid to contain every node's bounding box. Used as a load-time
+// safeguard for documents whose stored grid doesn't fit their content.
+export function ensureGridFitsAll(doc: SceneDocument): SceneDocument {
+  let maxX = 0, maxY = 0;
+  for (const node of doc.nodes.values()) {
+    maxX = Math.max(maxX, node.bounds.x + node.bounds.width);
+    maxY = Math.max(maxY, node.bounds.y + node.bounds.height);
+  }
+  if (maxX === 0 && maxY === 0) return doc;
+  return ensureGridFits(doc, { x: 0, y: 0, width: maxX, height: maxY });
 }
