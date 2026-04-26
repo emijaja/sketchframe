@@ -1,6 +1,14 @@
 import { useEffect } from 'react';
+import useSWR from 'swr';
 import { useSceneStore } from './use-scene-store';
+import { fetcher } from '@/lib/swr/fetcher';
 import type { SerializedDocument } from '@/lib/scene/serialization';
+
+interface WireframeRecord {
+  id: string;
+  title: string;
+  canvas: SerializedDocument;
+}
 
 export function useLoadWireframe(
   wireframeId: string | null,
@@ -8,33 +16,18 @@ export function useLoadWireframe(
 ) {
   const importCanvas = useSceneStore((s) => s.importCanvas);
 
+  const { data, error, isLoading } = useSWR<WireframeRecord>(
+    wireframeId ? `/api/wireframes/${wireframeId}` : null,
+    fetcher,
+    { revalidateOnFocus: false, revalidateIfStale: false },
+  );
+
   useEffect(() => {
-    if (!wireframeId) return;
+    if (!data) return;
+    importCanvas(data.canvas);
+    onLoaded?.({ id: data.id, title: data.title });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.id]);
 
-    fetch(`/api/wireframes/${wireframeId}`)
-      .then(async (res) => {
-        const data = await res.json().catch(() => null);
-
-        if (!res.ok) {
-          const serverMessage =
-            data && typeof data === 'object' && typeof data.error === 'string'
-              ? data.error
-              : null;
-          const fallback =
-            res.status === 401
-              ? 'Unauthorized'
-              : res.status === 404
-                ? 'Not found'
-                : `Request failed with status ${res.status}`;
-          throw new Error(serverMessage ?? fallback);
-        }
-
-        return data;
-      })
-      .then((data) => {
-        importCanvas(data.canvas as SerializedDocument);
-        onLoaded?.({ id: data.id, title: data.title });
-      })
-      .catch(console.error);
-  }, [wireframeId, importCanvas, onLoaded]);
+  return { error, isLoading };
 }
