@@ -122,7 +122,7 @@ export function Grid() {
           onDoubleClick={handleDoubleClick}
         />
       </div>
-      <GeneratePrompt />
+      {/* <GeneratePrompt /> */}
     </div>
   );
 }
