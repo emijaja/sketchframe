@@ -1,0 +1,69 @@
+import { useCallback, useState } from 'react';
+import useSWRMutation from 'swr/mutation';
+import { useSceneStore } from './use-scene-store';
+import { generateThumbnail } from '@/lib/thumbnail';
+import {
+  LIGHT_COLORS, DARK_COLORS,
+  DEFAULT_CELL_WIDTH, DEFAULT_CELL_HEIGHT,
+  FONT_FAMILY, FONT_SIZE,
+} from '@/lib/constants';
+import { measureCellSize } from '@/lib/grid-renderer';
+import { jsonMutator } from '@/lib/swr/fetcher';
+
+function resolveCellSize(): { width: number; height: number } {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return { width: DEFAULT_CELL_WIDTH, height: DEFAULT_CELL_HEIGHT };
+  ctx.font = `${FONT_SIZE}px ${FONT_FAMILY}`;
+  return measureCellSize(ctx);
+}
+
+export function useSaveWireframe() {
+  const [currentId, setCurrentId] = useState<string | null>(null);
+  const [title, setTitle] = useState('Untitled');
+
+  const createMutation = useSWRMutation(
+    '/api/wireframes',
+    jsonMutator<{ id: string }>,
+  );
+  const patchMutation = useSWRMutation(
+    currentId ? `/api/wireframes/${currentId}` : null,
+    jsonMutator<{ success: true }>,
+  );
+
+  const save = useCallback(async () => {
+    const state = useSceneStore.getState();
+    const canvas = state.exportCanvas();
+    const markdown = state.renderedGrid.toMarkdown();
+    const colors = state.theme === 'dark' ? DARK_COLORS : LIGHT_COLORS;
+
+    const { width: cellWidth, height: cellHeight } = resolveCellSize();
+    const thumbnail = generateThumbnail(state.renderedGrid, cellWidth, cellHeight, colors);
+
+    if (currentId) {
+      await patchMutation.trigger({
+        method: 'PATCH',
+        body: { title, canvas, markdown, thumbnail },
+      });
+      return currentId;
+    }
+
+    const created = await createMutation.trigger({
+      method: 'POST',
+      body: {
+        title,
+        canvas,
+        markdown,
+        thumbnail,
+        width: state.document.gridCols,
+        height: state.document.gridRows,
+      },
+    });
+    setCurrentId(created.id);
+    return created.id;
+  }, [currentId, title, createMutation, patchMutation]);
+
+  const saving = createMutation.isMutating || patchMutation.isMutating;
+
+  return { save, saving, currentId, setCurrentId, title, setTitle };
+}

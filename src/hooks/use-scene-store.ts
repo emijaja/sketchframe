@@ -6,6 +6,9 @@ import {
   NodeId, SceneNode, SceneDocument, Bounds, ResizeCorner, SparseCell, NewNodeData, GroupNode,
 } from '@/lib/scene/types';
 import {
+  SerializedDocument, serializeDocument, deserializeDocument,
+} from '@/lib/scene/serialization';
+import {
   createDocument, generateId, addNode, removeNodes as removeNodesDoc,
   updateNode as updateNodeDoc, moveNodes as moveNodesDoc, resizeNode as resizeNodeDoc,
   setNodeVisibility as setNodeVisibilityDoc,
@@ -159,6 +162,10 @@ interface SceneState {
   // Direct grid write for generate progressive rendering
   setCharsRaw(chars: { row: number; col: number; char: string }[]): void;
   applyChars(chars: { row: number; col: number; char: string }[]): void;
+
+  // Persistence
+  exportCanvas(): SerializedDocument;
+  importCanvas(data: SerializedDocument): void;
 }
 
 function makeRenderedGrid(doc: SceneDocument): CharGrid {
@@ -888,6 +895,36 @@ export const useSceneStore = create<SceneState>((set, get) => {
           cells,
         });
       }
+    },
+
+    // ─── Persistence ────────────────────────────────────────────────────────────
+
+    exportCanvas: () => {
+      return serializeDocument(get().document);
+    },
+
+    importCanvas: (data) => {
+      const doc = deserializeDocument(data);
+      set({
+        document: doc,
+        renderedGrid: makeRenderedGrid(doc),
+        selectedIds: [],
+        selectInteraction: 'idle',
+        selectDragStart: null,
+        resizeCorner: null,
+        drillScope: null,
+        originalBoundsMap: null,
+        editingNodeId: null,
+        editingTextKey: null,
+        editingCursorPos: 0,
+        textInputActive: false,
+        textInputPos: null,
+        preview: null,
+        generateSelection: null,
+        generateLoading: false,
+        undoStack: [],
+        redoStack: [],
+      });
     },
   };
 });
