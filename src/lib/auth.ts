@@ -3,16 +3,7 @@ import Google from "next-auth/providers/google"
 import GitHub from "next-auth/providers/github"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "./prisma"
-
-function getRequiredEnv(name: string): string {
-  const value = process.env[name]
-
-  if (!value || value.trim() === "") {
-    throw new Error(`Missing required environment variable: ${name}`)
-  }
-
-  return value
-}
+import { getRequiredEnv } from "./env"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),

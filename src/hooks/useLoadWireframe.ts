@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import useSWR from 'swr';
 import { useSceneStore } from './use-scene-store';
 import { fetcher } from '@/lib/swr/fetcher';
@@ -15,6 +15,8 @@ export function useLoadWireframe(
   onLoaded?: (data: { id: string; title: string }) => void,
 ) {
   const importCanvas = useSceneStore((s) => s.importCanvas);
+  const onLoadedRef = useRef(onLoaded);
+  onLoadedRef.current = onLoaded;
 
   const { data, error, isLoading } = useSWR<WireframeRecord>(
     wireframeId ? `/api/wireframes/${wireframeId}` : null,
@@ -25,7 +27,7 @@ export function useLoadWireframe(
   useEffect(() => {
     if (!data) return;
     importCanvas(data.canvas);
-    onLoaded?.({ id: data.id, title: data.title });
+    onLoadedRef.current?.({ id: data.id, title: data.title });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.id]);
 

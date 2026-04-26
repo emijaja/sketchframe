@@ -43,12 +43,17 @@ import {
   Redo2,
   Grid3x3,
   Copy,
+  Save,
+  LayoutDashboard,
 } from 'lucide-react';
 import { useEditorStore } from '@/hooks/use-editor-store';
 import { ToolId } from '@/lib/constants';
 import { CatLogo } from './CatLogo';
 import { copyAsMarkdown } from '@/lib/clipboard';
 import { toast } from 'sonner';
+import { AuthButton } from '@/components/auth/auth-button';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 
 const ICON = "h-4 w-4";
 
@@ -109,7 +114,14 @@ const drawGroup: ToolGroup = {
   ],
 };
 
-export function Toolbar({ onToolSelect }: { onToolSelect?: () => void } = {}) {
+interface ToolbarProps {
+  onToolSelect?: () => void;
+  onSave?: () => void;
+  saving?: boolean;
+}
+
+export function Toolbar({ onToolSelect, onSave, saving }: ToolbarProps = {}) {
+  const { data: session } = useSession();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const activeTool = useEditorStore((s) => s.activeTool);
   const setActiveTool = useEditorStore((s) => s.setActiveTool);
@@ -215,6 +227,29 @@ export function Toolbar({ onToolSelect }: { onToolSelect?: () => void } = {}) {
 
       {/* Bottom controls */}
       <div className="flex flex-col gap-2 px-2 pb-3">
+        <AuthButton />
+
+        {session?.user && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onSave}
+              disabled={saving}
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-foreground/70 hover:bg-foreground/5 hover:text-foreground transition-colors border border-border/60 disabled:opacity-40 disabled:pointer-events-none"
+              title="Save wireframe"
+            >
+              <Save className={ICON} />
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+            <Link
+              href="/dashboard"
+              className="p-1.5 rounded-lg text-foreground/40 hover:bg-foreground/5 hover:text-foreground transition-colors"
+              title="My Wireframes"
+            >
+              <LayoutDashboard className={ICON} />
+            </Link>
+          </div>
+        )}
+
         <div className="flex items-center gap-1">
           <button
             onClick={undo}

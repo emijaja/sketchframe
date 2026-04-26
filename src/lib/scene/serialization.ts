@@ -21,9 +21,19 @@ export function serializeDocument(doc: SceneDocument): SerializedDocument {
 /** Reconstruct SceneDocument from serialized JSON */
 export function deserializeDocument(data: SerializedDocument): SceneDocument {
   return {
-    nodes: new Map(data.nodes.map((n) => [n.id, n])),
+    nodes: new Map(data.nodes.map((n) => [n.id, hydrateNode(n)])),
     rootOrder: data.rootOrder,
     gridRows: data.gridRows,
     gridCols: data.gridCols,
+  };
+}
+
+/** Ensure BaseNode defaults are present after JSON round-trip */
+function hydrateNode(n: SceneNode): SceneNode {
+  return {
+    ...n,
+    visible: n.visible ?? true,
+    locked: n.locked ?? false,
+    parentId: n.parentId ?? null,
   };
 }
