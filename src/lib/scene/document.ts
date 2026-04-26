@@ -604,28 +604,36 @@ export function ungroupNode(doc: SceneDocument, groupId: NodeId): SceneDocument 
   return next;
 }
 
+/** Deep-copy a single node, overriding id/parentId and cloning all internal arrays. */
+function cloneNodeDeep(src: SceneNode, newId: NodeId, newParentId: NodeId | null): SceneNode {
+  const base = { ...src, id: newId, parentId: newParentId, bounds: { ...src.bounds } };
+  switch (src.type) {
+    case 'stroke':
+      return { ...base, cells: src.cells.map(c => ({ ...c })) } as SceneNode;
+    case 'line':
+    case 'arrow':
+      return { ...base, points: src.points.map(p => ({ ...p })) } as SceneNode;
+    case 'table':
+      return { ...base, columns: [...src.columns], columnWidths: [...src.columnWidths] } as SceneNode;
+    case 'tabs':
+      return { ...base, tabs: [...src.tabs] } as SceneNode;
+    case 'nav':
+      return { ...base, links: [...src.links] } as SceneNode;
+    case 'list':
+      return { ...base, items: [...src.items] } as SceneNode;
+    case 'breadcrumb':
+      return { ...base, items: [...src.items] } as SceneNode;
+    case 'group':
+      return { ...base, childIds: [...src.childIds] } as SceneNode;
+    default:
+      return base as SceneNode;
+  }
+}
+
 export function cloneDocument(doc: SceneDocument): SceneDocument {
   const nodes = new Map<NodeId, SceneNode>();
   for (const [id, node] of doc.nodes) {
-    if (node.type === 'stroke') {
-      nodes.set(id, { ...node, cells: [...node.cells], bounds: { ...node.bounds } });
-    } else if (node.type === 'group') {
-      nodes.set(id, { ...node, childIds: [...(node as GroupNode).childIds], bounds: { ...node.bounds } });
-    } else if (node.type === 'line' || node.type === 'arrow') {
-      nodes.set(id, { ...node, points: [...node.points], bounds: { ...node.bounds } } as SceneNode);
-    } else if (node.type === 'table') {
-      nodes.set(id, { ...node, columns: [...node.columns], columnWidths: [...node.columnWidths], bounds: { ...node.bounds } } as SceneNode);
-    } else if (node.type === 'tabs') {
-      nodes.set(id, { ...node, tabs: [...node.tabs], bounds: { ...node.bounds } } as SceneNode);
-    } else if (node.type === 'nav') {
-      nodes.set(id, { ...node, links: [...node.links], bounds: { ...node.bounds } } as SceneNode);
-    } else if (node.type === 'list') {
-      nodes.set(id, { ...node, items: [...node.items], bounds: { ...node.bounds } } as SceneNode);
-    } else if (node.type === 'breadcrumb') {
-      nodes.set(id, { ...node, items: [...node.items], bounds: { ...node.bounds } } as SceneNode);
-    } else {
-      nodes.set(id, { ...node, bounds: { ...node.bounds } } as SceneNode);
-    }
+    nodes.set(id, cloneNodeDeep(node, id, node.parentId));
   }
   return {
     nodes,
@@ -633,6 +641,90 @@ export function cloneDocument(doc: SceneDocument): SceneDocument {
     gridRows: doc.gridRows,
     gridCols: doc.gridCols,
   };
+}
+
+/**
+ * Recursively deep-clone a node (and its descendants if it's a group) into `doc`,
+ * allocating fresh ids and remapping childIds. Returns the new root id.
+ */
+function deepCloneIntoDoc(doc: SceneDocument, srcId: NodeId, newParentId: NodeId | null): NodeId {
+  const src = doc.nodes.get(srcId);
+  if (!src) {
+    throw new Error(`Cannot deep-clone missing scene node: ${srcId}`);
+  }
+  const newId = generateId();
+  const cloned = cloneNodeDeep(src, newId, newParentId);
+  doc.nodes.set(newId, cloned);
+  if (src.type === 'group') {
+    const newChildIds = src.childIds.map(cid => deepCloneIntoDoc(doc, cid, newId));
+    const updated = { ...(doc.nodes.get(newId) as GroupNode), childIds: newChildIds } as GroupNode;
+    doc.nodes.set(newId, updated);
+  }
+  return newId;
+}
+
+/**
+ * Duplicate the given nodes. Groups are deep-cloned with fresh ids. Duplicates
+ * are inserted immediately after each source in z-order and offset by (+1,+1)
+ * (falling back to (-1,-1) per axis when clamped to 0). Returns the new
+ * top-level ids so callers can select them.
+ */
+export function duplicateNodes(
+  doc: SceneDocument,
+  ids: NodeId[]
+): { doc: SceneDocument; newIds: NodeId[] } {
+  if (ids.length === 0) return { doc, newIds: [] };
+
+  // Drop ids whose ancestor is also in the selection (prevents double-duplication).
+  const idSet = new Set(ids);
+  const topLevelIds = ids.filter(id => {
+    const node = doc.nodes.get(id);
+    if (!node) return false;
+    let p = node.parentId;
+    while (p) {
+      if (idSet.has(p)) return false;
+      p = doc.nodes.get(p)?.parentId ?? null;
+    }
+    return true;
+  });
+  if (topLevelIds.length === 0) return { doc, newIds: [] };
+
+  // Offset: prefer (+1,+1); fall back to (-1,-1) per-axis when the positive
+  // delta is clamped to 0 (i.e. nodes are already at the right/bottom edge).
+  const pos = clampMoveDelta(doc, topLevelIds, 1, 1);
+  const neg = clampMoveDelta(doc, topLevelIds, -1, -1);
+  const dRow = pos.dRow !== 0 ? pos.dRow : neg.dRow;
+  const dCol = pos.dCol !== 0 ? pos.dCol : neg.dCol;
+
+  const next = cloneDocShallow(doc);
+  const newIds: NodeId[] = [];
+
+  for (const srcId of topLevelIds) {
+    const src = next.nodes.get(srcId);
+    if (!src) continue;
+
+    const newId = deepCloneIntoDoc(next, srcId, src.parentId);
+    shiftNodeBounds(next, newId, dRow, dCol);
+
+    if (src.parentId) {
+      const parent = next.nodes.get(src.parentId);
+      if (parent && parent.type === 'group') {
+        const g = parent;
+        const idx = g.childIds.indexOf(srcId);
+        const newChildIds = [...g.childIds];
+        newChildIds.splice(idx >= 0 ? idx + 1 : newChildIds.length, 0, newId);
+        next.nodes.set(g.id, { ...g, childIds: newChildIds } as GroupNode);
+      }
+      refreshGroupChain(next, src.parentId);
+    } else {
+      const idx = next.rootOrder.indexOf(srcId);
+      next.rootOrder.splice(idx >= 0 ? idx + 1 : next.rootOrder.length, 0, newId);
+    }
+
+    newIds.push(newId);
+  }
+
+  return { doc: next, newIds };
 }
 
 export function moveInOrder(doc: SceneDocument, id: NodeId, newIndex: number): SceneDocument {

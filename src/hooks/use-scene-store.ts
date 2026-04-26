@@ -15,6 +15,7 @@ import {
   bringToFront as bringToFrontDoc, sendToBack as sendToBackDoc,
   groupNodes as groupNodesDoc, ungroupNode as ungroupNodeDoc,
   moveInOrder as moveInOrderDoc, reparentNode as reparentNodeDoc, reparentNodes as reparentNodesDoc,
+  duplicateNodes as duplicateNodesDoc,
   cloneDocument,
 } from '@/lib/scene/document';
 import { renderScene } from '@/lib/scene/renderer';
@@ -96,6 +97,10 @@ interface SceneState {
   // Grouping
   groupSelected(skipUndo?: boolean): void;
   ungroupSelected(): void;
+
+  // Duplicate
+  duplicateSelected(): void;
+  duplicateNodes(ids: NodeId[]): void;
 
   // Layer reorder / reparent
   reorderLayer(id: NodeId, newIndex: number): void;
@@ -305,6 +310,27 @@ export const useSceneStore = create<SceneState>((set, get) => {
         document: newDoc,
         renderedGrid: makeRenderedGrid(newDoc),
         selectedIds: [],
+      });
+    },
+
+    // ─── Duplicate ────────────────────────────────────────────────────
+
+    duplicateSelected: () => {
+      const { selectedIds } = get();
+      if (selectedIds.length === 0) return;
+      get().duplicateNodes([...selectedIds]);
+    },
+
+    duplicateNodes: (ids) => {
+      if (ids.length === 0) return;
+      const doc = get().document;
+      const { doc: newDoc, newIds } = duplicateNodesDoc(doc, ids);
+      if (newIds.length === 0) return;
+      get().pushUndo();
+      set({
+        document: newDoc,
+        renderedGrid: makeRenderedGrid(newDoc),
+        selectedIds: newIds,
       });
     },
 
