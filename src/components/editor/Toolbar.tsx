@@ -202,7 +202,7 @@ export function Toolbar({ onToolSelect, onSave, saving }: ToolbarProps = {}) {
 
       <div className="flex flex-col gap-4 px-2 pt-1 pb-4">
         {/* Generate — highlighted at top */}
-        {toolBtn({ id: 'generate', label: 'Generate', icon: <Wand2 className={ICON} /> })}
+        {/* {toolBtn({ id: 'generate', label: 'Generate', icon: <Wand2 className={ICON} /> })} */}
 
         {/* Basics — always visible, no secondary */}
         <div className="flex flex-col gap-0.5">

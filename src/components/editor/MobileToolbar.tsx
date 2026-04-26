@@ -292,7 +292,7 @@ export function MobileToolbar({ onSave, saving }: MobileToolbarProps = {}) {
         className={`fixed right-3 z-50 md:hidden flex items-center gap-1.5 ${hasSelection ? 'hidden' : ''}`}
         style={{ top: 'calc(12px + env(safe-area-inset-top, 0px))' }}
       >
-        <button
+        {/* <button
           onClick={() => setActiveTool('generate')}
           className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 shadow-sm text-xs font-semibold transition-colors ${
             activeTool === 'generate'
@@ -302,7 +302,7 @@ export function MobileToolbar({ onSave, saving }: MobileToolbarProps = {}) {
         >
           <Wand2 className={IC_XS} />
           AI
-        </button>
+        </button> */}
         {session?.user && (
           <button
             onClick={onSave}
