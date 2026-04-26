@@ -2,8 +2,21 @@ import { useCallback, useState } from 'react';
 import useSWRMutation from 'swr/mutation';
 import { useSceneStore } from './use-scene-store';
 import { generateThumbnail } from '@/lib/thumbnail';
-import { LIGHT_COLORS, DARK_COLORS } from '@/lib/constants';
+import {
+  LIGHT_COLORS, DARK_COLORS,
+  DEFAULT_CELL_WIDTH, DEFAULT_CELL_HEIGHT,
+  FONT_FAMILY, FONT_SIZE,
+} from '@/lib/constants';
+import { measureCellSize } from '@/lib/grid-renderer';
 import { jsonMutator } from '@/lib/swr/fetcher';
+
+function resolveCellSize(): { width: number; height: number } {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return { width: DEFAULT_CELL_WIDTH, height: DEFAULT_CELL_HEIGHT };
+  ctx.font = `${FONT_SIZE}px ${FONT_FAMILY}`;
+  return measureCellSize(ctx);
+}
 
 export function useSaveWireframe() {
   const [currentId, setCurrentId] = useState<string | null>(null);
@@ -24,10 +37,7 @@ export function useSaveWireframe() {
     const markdown = state.renderedGrid.toMarkdown();
     const colors = state.theme === 'dark' ? DARK_COLORS : LIGHT_COLORS;
 
-    const canvasEl = document.querySelector('canvas');
-    const cellWidth = canvasEl ? canvasEl.width / (window.devicePixelRatio || 1) / state.document.gridCols : 8.4;
-    const cellHeight = canvasEl ? canvasEl.height / (window.devicePixelRatio || 1) / state.document.gridRows : 18.2;
-
+    const { width: cellWidth, height: cellHeight } = resolveCellSize();
     const thumbnail = generateThumbnail(state.renderedGrid, cellWidth, cellHeight, colors);
 
     if (currentId) {
